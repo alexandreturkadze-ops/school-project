@@ -1,0 +1,389 @@
+@if (!store.isAdmin()) {
+  <!-- შესვლა -->
+  <main class="login">
+    <form class="login-card" (submit)="$event.preventDefault(); login()">
+      <span class="lock"><app-icon name="key" [size]="26" /></span>
+      <h1>ადმინ პანელი</h1>
+      <p>შესასვლელად შეიყვანეთ კოდი.</p>
+      <label for="admin-code" class="sr">კოდი</label>
+      <input id="admin-code" name="code" type="password" autocomplete="off" placeholder="კოდი" [(ngModel)]="code" [class.err]="loginError()" />
+      @if (loginError()) { <p class="err-text"><app-icon name="warn" [size]="15" /> კოდი არასწორია. სცადეთ თავიდან.</p> }
+      <button class="btn primary" type="submit"><app-icon name="lock" [size]="17" /> შესვლა</button>
+      <a class="back" routerLink="/"><app-icon name="left" [size]="15" /> საიტზე დაბრუნება</a>
+    </form>
+  </main>
+} @else {
+  <main class="admin">
+    <div class="admin-head">
+      <div>
+        <span class="tag"><app-icon name="settings" [size]="14" /> ადმინ პანელი</span>
+        <h1>საიტის მართვა</h1>
+        <p>ყველა ცვლილება მაშინვე ჩანს საიტზე და ინახება ამ ბრაუზერში.
+          @if (store.savedAt(); as d) { <span class="saved"><app-icon name="check" [size]="13" /> შენახულია {{ d | date:'HH:mm:ss' }}</span> }</p>
+      </div>
+      <div class="head-actions">
+        <div class="history">
+          <button class="btn icon" [disabled]="!store.canUndo()" (click)="store.undo()" title="დაბრუნება (ბოლო ცვლილების გაუქმება)" aria-label="დაბრუნება"><app-icon name="undo" [size]="17" /></button>
+          <button class="btn icon" [disabled]="!store.canRedo()" (click)="store.redo()" title="გამეორება" aria-label="გამეორება"><app-icon name="redo" [size]="17" /></button>
+        </div>
+        <a class="btn" routerLink="/"><app-icon name="eye" [size]="16" /> საიტის ნახვა</a>
+        <button class="btn" (click)="logout()"><app-icon name="logout" [size]="16" /> გასვლა</button>
+      </div>
+    </div>
+
+    <nav class="tabs">
+      @for (t of tabs; track t.id) {
+        <button [class.on]="tab() === t.id" (click)="setTab(t.id)"><app-icon [name]="t.icon" [size]="17" /><span>{{ t.label }}</span></button>
+      }
+    </nav>
+
+    <!-- ===================== მიმოხილვა ===================== -->
+    @if (tab() === 'overview') {
+      <div class="ov-grid">
+        <button class="ov" style="--k:var(--c1)" (click)="setTab('projects')"><app-icon name="folder" [size]="22" /><b>{{ overview().projects }}</b><span>პროექტი</span></button>
+        <button class="ov" style="--k:var(--c2)" (click)="setTab('projects')"><app-icon name="layers" [size]="22" /><b>{{ overview().sections }}</b><span>დამატებითი სექცია</span></button>
+        <button class="ov" style="--k:var(--c3)" (click)="setTab('students')"><app-icon name="users" [size]="22" /><b>{{ overview().students }}</b><span>მოსწავლე</span></button>
+        <button class="ov" style="--k:var(--c4)" (click)="setTab('photos')"><app-icon name="image" [size]="22" /><b>{{ overview().changedPhotos }}</b><span>შეცვლილი ფოტო</span></button>
+        <button class="ov" style="--k:var(--c5)" (click)="setTab('texts')"><app-icon name="eye-off" [size]="22" /><b>{{ overview().hidden }}</b><span>დამალული სექცია</span></button>
+        <div class="ov" style="--k:var(--c6)"><app-icon name="drive" [size]="22" /><b>{{ overview().kb | number:'1.0-0' }} KB</b><span>მეხსიერება ({{ overview().pctStorage | number:'1.0-0' }}%)</span>
+          <i class="ov-bar"><i [style.width.%]="overview().pctStorage"></i></i></div>
+      </div>
+      <div class="panel">
+        <h2>სწრაფი მოქმედებები</h2>
+        <div class="quick-actions">
+          <button class="qa" (click)="router.navigate([], { queryParams: { tab: 'projects', new: 1 } })"><app-icon name="plus" [size]="20" /><b>ახალი პროექტი</b><span>საკუთარი გვერდით და ზედა ნაწილით</span></button>
+          <button class="qa" (click)="openEdit('school'); addSection('school')"><app-icon name="layers" [size]="20" /><b>სექციის დამატება</b><span>სტატისტიკის გვერდის ბოლოს</span></button>
+          <button class="qa" (click)="setTab('students')"><app-icon name="pencil" [size]="20" /><b>მოსწავლეების რედაქტირება</b><span>დიაგრამები თავისით განახლდება</span></button>
+          <button class="qa" (click)="setTab('texts')"><app-icon name="eye" [size]="20" /><b>სექციების დამალვა</b><span>აირჩიე, რა გამოჩნდეს საიტზე</span></button>
+          <button class="qa" (click)="exportCsv()"><app-icon name="sheet" [size]="20" /><b>სია Excel-ისთვის</b><span>მოსწავლეების გადმოწერა .csv ფაილად</span></button>
+          <button class="qa" (click)="setTab('settings')"><app-icon name="palette" [size]="20" /><b>ფერი და კოდი</b><span>მთავარი ფერი, ფონი, ადმინის კოდი</span></button>
+        </div>
+      </div>
+      @if (overview().uploaded > 0) {
+        <p class="hint"><app-icon name="info" [size]="14" /> ატვირთულია {{ overview().uploaded }} ფოტო. ატვირთული ფოტოები ბევრ ადგილს იკავებს, ამიტომ შეძლებისდაგვარად გამოიყენე ბმულები.</p>
+      }
+    }
+
+    <!-- ===================== პროექტები ===================== -->
+    @if (tab() === 'projects') {
+      @if (editing(); as p) {
+        <div class="panel">
+          <div class="panel-head">
+            <button class="btn sm" (click)="closeEdit()"><app-icon name="left" [size]="15" /> ყველა პროექტი</button>
+            <a class="btn sm" [routerLink]="['/p', p.id]"><app-icon name="external" [size]="15" /> გახსნა</a>
+          </div>
+          <h2>{{ p.title }}</h2>
+
+          <h3 class="sub">ზედა ნაწილი (header)</h3>
+          <div class="form-grid">
+            <div class="field"><label for="p-title">სათაური</label><input id="p-title" [value]="p.title" (input)="setP(p.id, 'title', $any($event.target).value)" /></div>
+            <div class="field"><label for="p-eyebrow">მცირე წარწერა სათაურის ზემოთ</label><input id="p-eyebrow" [value]="p.eyebrow" (input)="setP(p.id, 'eyebrow', $any($event.target).value)" /></div>
+            <div class="field full"><label for="p-sub">აღწერა</label><textarea id="p-sub" rows="3" [value]="p.subtitle" (input)="setP(p.id, 'subtitle', $any($event.target).value)"></textarea></div>
+            <div class="field full">
+              <app-image-field [value]="p.hero" (valueChange)="setP(p.id, 'hero', $event)"
+                [label]="p.kind === 'demography' ? 'ზედა ფოტო (ცარიელი = ფოტოების გვერდზე მითითებული)' : 'ზედა ფოტო'" />
+            </div>
+            <div class="field full">
+              <label>ფერი</label>
+              <div class="swatches">
+                @for (c of accents; track c) {
+                  <button type="button" [style.background]="c" [class.on]="p.accent === c" (click)="setP(p.id, 'accent', c)" [attr.aria-label]="'ფერი ' + c"></button>
+                }
+                <input type="color" [value]="p.accent" (input)="setP(p.id, 'accent', $any($event.target).value)" aria-label="სხვა ფერი" />
+              </div>
+            </div>
+          </div>
+
+          <h3 class="sub">სექციები <span class="count">{{ p.sections.length }}</span></h3>
+          @if (p.kind === 'demography') { <p class="hint">ეს სექციები გამოჩნდება 14 სტატისტიკური სექციის შემდეგ.</p> }
+          <div class="sections">
+            @for (s of p.sections; track s.id; let i = $index; let last = $last) {
+              <div class="sec-item" [class.open]="openSection() === s.id">
+                <div class="sec-bar" (click)="openSection.set(openSection() === s.id ? '' : s.id)">
+                  <span class="sec-n">{{ i + 1 }}</span>
+                  <b>{{ s.title || 'უსათაურო' }}</b>
+                  <div class="sec-tools" (click)="$event.stopPropagation()">
+                    <button class="btn sm icon" [disabled]="i === 0" (click)="store.moveSection(p.id, s.id, -1)" aria-label="ზემოთ"><app-icon name="chevron-up" [size]="15" /></button>
+                    <button class="btn sm icon" [disabled]="last" (click)="store.moveSection(p.id, s.id, 1)" aria-label="ქვემოთ"><app-icon name="chevron-down" [size]="15" /></button>
+                    <button class="btn sm icon danger" (click)="store.deleteSection(p.id, s.id)" aria-label="წაშლა"><app-icon name="trash" [size]="15" /></button>
+                  </div>
+                </div>
+                @if (openSection() === s.id) {
+                  <div class="sec-body form-grid">
+                    <div class="field full"><label [for]="'s-t-' + s.id">სათაური</label><input [id]="'s-t-' + s.id" [value]="s.title" (input)="setS(p.id, s.id, 'title', $any($event.target).value)" /></div>
+                    <div class="field full"><label [for]="'s-x-' + s.id">ტექსტი</label><textarea [id]="'s-x-' + s.id" rows="4" [value]="s.text" (input)="setS(p.id, s.id, 'text', $any($event.target).value)"></textarea></div>
+                    <div class="field full"><app-image-field [value]="s.image" (valueChange)="setS(p.id, s.id, 'image', $event)" /></div>
+                    <div class="field full">
+                      <label>რიცხვები</label>
+                      @for (st of s.stats; track $index; let j = $index) {
+                        <div class="stat-row">
+                          <input [value]="st.value" placeholder="რიცხვი" (input)="setStat(p.id, s.id, j, 'value', $any($event.target).value)" aria-label="რიცხვი" />
+                          <input [value]="st.label" placeholder="წარწერა" (input)="setStat(p.id, s.id, j, 'label', $any($event.target).value)" aria-label="წარწერა" />
+                          <button class="btn sm icon danger" (click)="removeStat(p.id, s.id, j)" aria-label="რიცხვის წაშლა"><app-icon name="x" [size]="15" /></button>
+                        </div>
+                      }
+                      <button class="btn sm" (click)="addStat(p.id, s.id)"><app-icon name="plus" [size]="15" /> რიცხვის დამატება</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+          <button class="btn primary add-sec" (click)="addSection(p.id)"><app-icon name="plus" [size]="17" /> ახალი სექცია</button>
+
+          @if (store.projects().length > 1) {
+            <div class="danger-zone">
+              <div><b>პროექტის წაშლა</b><p>პროექტი და მისი ყველა სექცია წაიშლება.</p></div>
+              <button class="btn danger" (click)="deleteProject(p)"><app-icon name="trash" [size]="16" />{{ confirmDelete() === p.id ? 'დიახ, წაშალე' : 'წაშლა' }}</button>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="panel">
+          <h2>პროექტები</h2>
+          <div class="proj-list">
+            @for (p of store.projects(); track p.id; let i = $index; let last = $last) {
+              <div class="proj">
+                <span class="proj-color" [style.background]="p.accent"></span>
+                <div class="proj-text"><small>{{ p.eyebrow }}</small><b>{{ p.title }}</b><span>{{ p.kind === 'demography' ? 'სტატისტიკა + ' : '' }}{{ p.sections.length }} სექცია</span></div>
+                <div class="proj-tools">
+                  <button class="btn sm icon" [disabled]="i === 0" (click)="store.moveProject(p.id, -1)" aria-label="ზემოთ"><app-icon name="chevron-up" [size]="15" /></button>
+                  <button class="btn sm icon" [disabled]="last" (click)="store.moveProject(p.id, 1)" aria-label="ქვემოთ"><app-icon name="chevron-down" [size]="15" /></button>
+                  <a class="btn sm" [routerLink]="['/p', p.id]"><app-icon name="eye" [size]="15" /><span class="hide-sm">ნახვა</span></a>
+                  <button class="btn sm primary" (click)="openEdit(p.id)"><app-icon name="pencil" [size]="15" /><span class="hide-sm">რედაქტირება</span></button>
+                  <button class="btn sm icon" (click)="duplicate(p.id)" title="ასლის გაკეთება" [attr.aria-label]="'ასლი: ' + p.title"><app-icon name="copy" [size]="15" /></button>
+                  <button class="btn sm danger" [class.armed]="confirmDelete() === p.id" [disabled]="store.projects().length === 1"
+                    (click)="deleteProject(p)" [attr.aria-label]="'წაშლა: ' + p.title">
+                    <app-icon [name]="confirmDelete() === p.id ? 'check' : 'trash'" [size]="15" />
+                    <span [class.hide-sm]="confirmDelete() !== p.id">{{ confirmDelete() === p.id ? 'დიახ, წაშალე' : 'წაშლა' }}</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <form class="panel new-proj" [class.focus]="creating()" (submit)="$event.preventDefault(); createProject()">
+          <h2><app-icon name="plus" [size]="22" /> ახალი პროექტი</h2>
+          <p class="hint">ახალ პროექტს ექნება საკუთარი გვერდი და ზედა ნაწილი. სექციებს შექმნის შემდეგ დაამატებ.</p>
+          <div class="form-grid">
+            <div class="field"><label for="n-title">სათაური *</label><input id="n-title" name="title" required [(ngModel)]="draft.title" placeholder="მაგ.: ჩვენი სკოლის ისტორია" /></div>
+            <div class="field"><label for="n-eyebrow">მცირე წარწერა</label><input id="n-eyebrow" name="eyebrow" [(ngModel)]="draft.eyebrow" placeholder="მაგ.: პროექტი 03 · ისტორია" /></div>
+            <div class="field full"><label for="n-sub">აღწერა</label><textarea id="n-sub" name="subtitle" rows="3" [(ngModel)]="draft.subtitle"></textarea></div>
+            <div class="field full"><app-image-field [value]="draft.hero" (valueChange)="draft.hero = $event" label="ზედა ფოტო" /></div>
+            <div class="field full">
+              <label>ფერი</label>
+              <div class="swatches">
+                @for (c of accents; track c) {
+                  <button type="button" [style.background]="c" [class.on]="draft.accent === c" (click)="draft.accent = c" [attr.aria-label]="'ფერი ' + c"></button>
+                }
+              </div>
+            </div>
+          </div>
+          <button class="btn primary" type="submit" [disabled]="!draft.title.trim()"><app-icon name="check" [size]="17" /> პროექტის შექმნა</button>
+        </form>
+      }
+    }
+
+    <!-- ===================== ტექსტები ===================== -->
+    @if (tab() === 'texts') {
+      <div class="panel">
+        <h2>სტატისტიკის სექციები</h2>
+        <p class="hint">შეცვალე სათაურები და აღწერები. თვალის ღილაკით სექცია დაიმალება ან გამოჩნდება საიტზე.</p>
+        <div class="text-list">
+          @for (k of sectionKeys; track k; let i = $index) {
+            <div class="text-row" [class.off]="store.isHidden(k)">
+              <span class="sec-n" [style.background]="'var(--c' + ((i % 6) + 1) + ')'">{{ i + 1 }}</span>
+              <div class="form-grid tight">
+                <div class="field"><label [for]="'tt-' + k">სათაური</label><input [id]="'tt-' + k" [value]="store.texts()[k].title" (input)="setText(k, 'title', $any($event.target).value)" /></div>
+                <div class="field"><label [for]="'td-' + k">აღწერა</label><input [id]="'td-' + k" [value]="store.texts()[k].desc" (input)="setText(k, 'desc', $any($event.target).value)" /></div>
+              </div>
+              <button class="btn sm vis" [class.hidden-on]="store.isHidden(k)" (click)="store.toggleHidden(k)"
+                [attr.aria-label]="store.isHidden(k) ? 'გამოჩენა' : 'დამალვა'" [title]="store.isHidden(k) ? 'დამალულია. დააჭირე გამოსაჩენად' : 'ჩანს. დააჭირე დასამალად'">
+                <app-icon [name]="store.isHidden(k) ? 'eye-off' : 'eye'" [size]="16" /><span>{{ store.isHidden(k) ? 'დამალული' : 'ჩანს' }}</span>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="panel">
+        <h2>უბნების ისტორიები</h2>
+        <p class="hint">ტექსტები მე-10 სექციაში, ორი ყველაზე დიდი უბნის ფოტოს გვერდით.</p>
+        <div class="form-grid">
+          <div class="field full"><label for="tx-vake">პირველი უბანი</label><textarea id="tx-vake" rows="3" [value]="store.texts()['vake'].desc" (input)="setText('vake', 'desc', $any($event.target).value)"></textarea></div>
+          <div class="field full"><label for="tx-sab">მეორე უბანი</label><textarea id="tx-sab" rows="3" [value]="store.texts()['saburtalo'].desc" (input)="setText('saburtalo', 'desc', $any($event.target).value)"></textarea></div>
+        </div>
+      </div>
+    }
+
+    <!-- ===================== ლოგო და ქვედა ნაწილი ===================== -->
+    @if (tab() === 'brand') {
+      <div class="panel">
+        <h2>სკოლის ლოგო და სახელი</h2>
+        <p class="hint">ლოგო და სახელი ჩანს ზედა მენიუშიც და ქვედა ნაწილშიც. თუ ლოგოს წაშლი, ისევ ხატულა გამოჩნდება.</p>
+        <div class="form-grid">
+          <div class="field full"><app-image-field [value]="store.state().logo" (valueChange)="setLogo($event)" [logo]="true" label="ლოგო" /></div>
+          <div class="field full"><label for="b-brand">სკოლის / საიტის სახელი</label><input id="b-brand" [value]="store.state().brand" (input)="setBrand($any($event.target).value)" /></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>ქვედა ნაწილი</h2>
+        <div class="form-grid">
+          <div class="field full"><label for="f-text">აღწერა</label><textarea id="f-text" rows="2" [value]="store.state().footer" (input)="setFooter($any($event.target).value)"></textarea></div>
+          <div class="field full">
+            <label for="f-copy">ბოლო ხაზი</label>
+            <input id="f-copy" [value]="store.state().footerCopy" (input)="setFooterCopy($any($event.target).value)" />
+            <p class="hint">&#123;year&#125; ავტომატურად მიმდინარე წლით შეიცვლება.</p>
+          </div>
+          <div class="field"><label for="f-h1">სვეტის სათაური: პროექტები</label><input id="f-h1" [value]="store.state().footerHeads.projects" (input)="setFooterHead('projects', $any($event.target).value)" /></div>
+          <div class="field"><label for="f-h2">სვეტის სათაური: სწრაფი გადასვლა</label><input id="f-h2" [value]="store.state().footerHeads.links" (input)="setFooterHead('links', $any($event.target).value)" /></div>
+          <div class="field"><label for="f-h3">სვეტის სათაური: ინფორმაცია</label><input id="f-h3" [value]="store.state().footerHeads.info" (input)="setFooterHead('info', $any($event.target).value)" /></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>ინფორმაციის ხაზები</h2>
+        <p class="hint">&#123;total&#125; ავტომატურად მოსწავლეების რაოდენობით შეიცვლება. ცარიელი ხაზი საიტზე არ გამოჩნდება.</p>
+        <div class="form-grid">
+          @for (line of store.state().footerInfo; track $index) {
+            <div class="field full"><label [for]="'f-info-' + $index">ხაზი {{ $index + 1 }}</label><input [id]="'f-info-' + $index" [value]="line" (input)="setFooterInfo($index, $any($event.target).value)" /></div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ===================== მოსწავლეები ===================== -->
+    @if (tab() === 'students') {
+      <div class="quick">
+        <div><b>{{ quick().total }}</b><span>მოსწავლე</span></div>
+        <div><b>{{ quick().boys }}</b><span>ბიჭი</span></div>
+        <div><b>{{ quick().girls }}</b><span>გოგო</span></div>
+        <div><b>{{ quick().density.classCount }}</b><span>კლასი</span></div>
+      </div>
+      <div class="panel">
+        <div class="table-tools">
+          <div class="search"><app-icon name="search" [size]="17" /><input type="search" placeholder="ძებნა: კლასი, უბანი, კუთხე…" [value]="search()" (input)="setSearch($any($event.target).value)" aria-label="ძებნა" /></div>
+          <button class="btn primary" (click)="addStudent()"><app-icon name="plus" [size]="16" /> მოსწავლის დამატება</button>
+          <button class="btn" (click)="exportCsv()"><app-icon name="download" [size]="16" /> .csv</button>
+          <label class="btn"><app-icon name="upload" [size]="16" /> .csv ჩატვირთვა<input type="file" accept=".csv,text/csv" hidden (change)="importCsv($event)" /></label>
+        </div>
+        @if (csvMessage()) { <div class="msg sm"><app-icon name="info" [size]="16" />{{ csvMessage() }}</div> }
+        <p class="hint">შეცვალე ნებისმიერი უჯრა და დიაგრამები ავტომატურად განახლდება. ნაპოვნია {{ filtered().length }}. სია ანონიმურია: ხაზები ნამდვილ მოსწავლეებს არ შეესაბამება, ხოლო სახელების და გვარების რიცხვები აქედან არ იცვლება.</p>
+        <div class="table-wrap">
+          <table class="students">
+            <thead><tr><th>კლასი</th><th>ასაკი</th><th>სქესი</th><th>ეროვნება</th><th>კუთხე</th><th>საზღვარგ.</th><th>ენა</th><th>უბანი</th><th></th></tr></thead>
+            <tbody>
+              @for (s of pageRows(); track s.n) {
+                <tr>
+                  <td><input class="w-xs" [value]="s.cls" (change)="setStudent(s.n, 'cls', $any($event.target).value)" aria-label="კლასი" /></td>
+                  <td><input class="w-xs" type="number" min="3" max="20" [value]="s.age" (change)="setStudent(s.n, 'age', $any($event.target).value)" aria-label="ასაკი" /></td>
+                  <td><select (change)="setStudent(s.n, 'gender', $any($event.target).value)" aria-label="სქესი"><option value="M" [selected]="s.gender === 'M'">ბიჭი</option><option value="F" [selected]="s.gender === 'F'">გოგო</option></select></td>
+                  <td><input [value]="s.nat" (change)="setStudent(s.n, 'nat', $any($event.target).value)" aria-label="ეროვნება" /></td>
+                  <td><input [value]="s.region" (change)="setStudent(s.n, 'region', $any($event.target).value)" aria-label="კუთხე" /></td>
+                  <td class="center"><input type="checkbox" [checked]="s.abroad" (change)="setStudent(s.n, 'abroad', $any($event.target).checked ? 'true' : 'false')" aria-label="საზღვარგარეთიდან" /></td>
+                  <td><input [value]="s.lang" (change)="setStudent(s.n, 'lang', $any($event.target).value)" aria-label="ენა" /></td>
+                  <td><input [value]="s.district" (change)="setStudent(s.n, 'district', $any($event.target).value)" aria-label="უბანი" /></td>
+                  <td><button class="btn sm icon danger" [class.armed]="confirmStudent() === s.n" (click)="removeStudent(s.n)" [attr.aria-label]="confirmStudent() === s.n ? 'დადასტურება' : 'წაშლა'">
+                    <app-icon [name]="confirmStudent() === s.n ? 'check' : 'trash'" [size]="15" /></button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button class="btn sm" [disabled]="page() === 0" (click)="page.set(page() - 1)"><app-icon name="left" [size]="15" /> წინა</button>
+          <span>{{ page() + 1 }} / {{ pages() }}</span>
+          <button class="btn sm" [disabled]="page() >= pages() - 1" (click)="page.set(page() + 1)">შემდეგი <app-icon name="right" [size]="15" /></button>
+        </div>
+      </div>
+    }
+
+    <!-- ===================== ფოტოები ===================== -->
+    @if (tab() === 'photos') {
+      <div class="panel">
+        <h2>მთავარი სლაიდერი <span class="count">{{ store.state().heroSlides.length + 1 }}</span></h2>
+        <p class="hint">ფოტოები, რომლებიც საიტის გახსნისას იცვლება. პირველი სლაიდი არის „მთავარი ფოტო“ ქვემოთ, ამ სიის ფოტოები მას მოსდევს. ატვირთვისას შეგიძლია რამდენიმე ფაილი ერთად აირჩიო.</p>
+        <div class="slide-list">
+          @for (src of store.state().heroSlides; track $index; let i = $index) {
+            <div class="slide-row">
+              <app-image-field [value]="src" (valueChange)="setSlide(i, $event)" [clearable]="false" [label]="'სლაიდი ' + (i + 2)" />
+              <div class="slide-tools">
+                <button class="btn icon" [disabled]="i === 0" (click)="moveSlide(i, -1)" aria-label="ზემოთ" title="ზემოთ"><app-icon name="up" [size]="16" /></button>
+                <button class="btn icon" [disabled]="i === store.state().heroSlides.length - 1" (click)="moveSlide(i, 1)" aria-label="ქვემოთ" title="ქვემოთ"><app-icon name="down" [size]="16" /></button>
+                <button class="btn icon danger" (click)="removeSlide(i)" aria-label="სლაიდის წაშლა" title="სლაიდის წაშლა"><app-icon name="trash" [size]="16" /></button>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="slide-add">
+          <label class="btn primary"><app-icon name="upload" [size]="16" /> ფოტოების ატვირთვა
+            <input type="file" accept="image/*" multiple hidden (change)="uploadSlides($event)" /></label>
+          <button class="btn" (click)="addSlide()"><app-icon name="plus" [size]="16" /> ბმულით დამატება</button>
+          @if (slideBusy()) { <span class="hint">მუშავდება…</span> }
+          @if (slideMsg()) { <span class="hint">{{ slideMsg() }}</span> }
+        </div>
+      </div>
+      <div class="panel">
+        <h2>ფოტოები</h2>
+        <p class="hint">ჩასვით ფოტოს ბმული ინტერნეტიდან ან ატვირთეთ ფაილი კომპიუტერიდან/ტელეფონიდან.</p>
+        <div class="photo-list">
+          @for (k of photoKeys; track k) {
+            <app-image-field [value]="store.photos()[k]" (valueChange)="setPhoto(k, $event)" [label]="photoLabels[k]" />
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ===================== პარამეტრები ===================== -->
+    @if (tab() === 'settings') {
+      @if (message()) { <div class="msg"><app-icon name="check" [size]="17" />{{ message() }}</div> }
+      <div class="panel">
+        <h2>გარეგნობა</h2>
+        <div class="setting">
+          <div><b>ფონი</b><p>ღია, მუქი ან როგორც მოწყობილობაზეა.</p></div>
+          <div class="seg">
+            <button [class.on]="store.themeChoice() === 'light'" (click)="store.setTheme('light')"><app-icon name="sun" [size]="15" /> ღია</button>
+            <button [class.on]="store.themeChoice() === 'dark'" (click)="store.setTheme('dark')"><app-icon name="moon" [size]="15" /> მუქი</button>
+            <button [class.on]="store.themeChoice() === 'system'" (click)="store.setTheme('system')"><app-icon name="monitor" [size]="15" /> ავტო</button>
+          </div>
+        </div>
+        <div class="setting">
+          <div><b>მთავარი ფერი</b><p>ღილაკები, ლოგო და აქცენტები მთელ საიტზე.</p></div>
+          <div class="swatches">
+            @for (c of brandColors; track c) {
+              <button type="button" [style.background]="c" [class.on]="store.state().brandColor === c" (click)="setBrandColor(c)" [attr.aria-label]="'ფერი ' + c"></button>
+            }
+            <input type="color" [value]="store.state().brandColor" (input)="setBrandColor($any($event.target).value)" aria-label="სხვა ფერი" />
+          </div>
+        </div>
+      </div>
+      <form class="panel" (submit)="$event.preventDefault(); changeCode()">
+        <h2>ადმინის კოდის შეცვლა</h2>
+        <div class="form-grid">
+          <div class="field"><label for="c1">ახალი კოდი</label><input id="c1" name="c1" type="password" autocomplete="new-password" [(ngModel)]="newCode" /></div>
+          <div class="field"><label for="c2">გაიმეორე კოდი</label><input id="c2" name="c2" type="password" autocomplete="new-password" [(ngModel)]="newCode2" /></div>
+        </div>
+        @if (codeMsg(); as m) { <div class="msg sm" [class.bad]="!m.ok"><app-icon [name]="m.ok ? 'check' : 'warn'" [size]="16" />{{ m.text }}</div> }
+        <button class="btn primary" type="submit"><app-icon name="key" [size]="16" /> კოდის შეცვლა</button>
+      </form>
+      <div class="panel">
+        <h2>შენახვა და გადატანა</h2>
+        <p class="hint">გადმოწერე ყველა ცვლილება ფაილად, რომ სხვა კომპიუტერზე ჩატვირთო.</p>
+        <div class="row-actions">
+          <button class="btn" (click)="exportJson()"><app-icon name="download" [size]="16" /> გადმოწერა (.json)</button>
+          <label class="btn"><app-icon name="upload" [size]="16" /> ჩატვირთვა (.json)<input type="file" accept="application/json,.json" hidden (change)="importJson($event)" /></label>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>საწყის მდგომარეობაში დაბრუნება</h2>
+        <div class="danger-zone">
+          <div><b>მოსწავლეების სია</b><p>ყველა მოსწავლე დაბრუნდება Excel ფაილის მონაცემებზე.</p></div>
+          <button class="btn danger" (click)="reset('students')"><app-icon name="reset" [size]="16" />{{ confirmReset() === 'students' ? 'დიახ, დააბრუნე' : 'დაბრუნება' }}</button>
+        </div>
+        <div class="danger-zone">
+          <div><b>მთელი საიტი</b><p>წაიშლება ყველა ახალი პროექტი, ტექსტი, ფოტო და შეცვლილი კოდი.</p></div>
+          <button class="btn danger" (click)="reset('all')"><app-icon name="reset" [size]="16" />{{ confirmReset() === 'all' ? 'დიახ, დააბრუნე' : 'დაბრუნება' }}</button>
+        </div>
+      </div>
+    }
+  </main>
+}

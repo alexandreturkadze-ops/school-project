@@ -1,0 +1,85 @@
+@if (project(); as p) {
+  <section class="hero" [style.--accent]="p.accent" (touchstart)="slider.touchStart($event)" (touchend)="slider.touchEnd($event)">
+    <app-hero-slider #slider [images]="heroImages()" [alt]="p.title"
+      [fallback]="'linear-gradient(135deg,' + p.accent + ',#0F1B2D 75%)'" />
+    <div class="hero-shade"></div>
+    <div class="hero-inner">
+      <span class="eyebrow"><span class="dot"></span>{{ p.eyebrow }}</span>
+      <h1>{{ p.title }}</h1>
+      @if (p.subtitle) { <p class="lead">{{ p.subtitle }}</p> }
+
+      @if (p.kind === 'demography') {
+        <div class="hero-stats">
+          <div style="--k:var(--c1)"><app-icon name="users" [size]="20" /><strong [countUp]="stats().total"></strong><span>მოსწავლე</span></div>
+          <div style="--k:var(--c2)"><app-icon name="layout" [size]="20" /><strong [countUp]="stats().density.classCount"></strong><span>კლასი</span></div>
+          <div style="--k:var(--c3)"><app-icon name="pin" [size]="20" /><strong [countUp]="stats().districts.length"></strong><span>უბანი</span></div>
+          <div style="--k:var(--c4)"><app-icon name="flag" [size]="20" /><strong [countUp]="stats().nats.length"></strong><span>ეროვნება</span></div>
+        </div>
+        <button class="cta" (click)="scrollTo('s1')">დაიწყე დათვალიერება <app-icon name="down" [size]="18" /></button>
+      } @else if (p.sections.length) {
+        <div class="hero-stats few">
+          <div><app-icon name="layers" [size]="20" /><strong>{{ p.sections.length }}</strong><span>სექცია</span></div>
+        </div>
+        <button class="cta" (click)="scrollTo('content')">დათვალიერება <app-icon name="down" [size]="18" /></button>
+      }
+    </div>
+  </section>
+
+  @if (p.kind === 'demography') {
+    <app-demography />
+  }
+
+  <!-- დამატებითი სექციები (ადმინ პანელიდან) -->
+  @if (p.sections.length) {
+    <main class="custom" id="content">
+      @for (s of p.sections; track s.id; let i = $index) {
+        <section class="c-sec" [class.flip]="i % 2 === 1" [class.no-img]="!s.image" reveal>
+          @if (s.image) {
+            <div class="c-img"><app-photo class="zoom" [src]="s.image" [alt]="s.title" [fallback]="p.accent" /></div>
+          }
+          <div class="c-body">
+            <span class="c-num" [style.color]="p.accent">{{ (i + 1).toString().padStart(2, '0') }}</span>
+            <h2>{{ s.title }}</h2>
+            @if (s.text) { <p>{{ s.text }}</p> }
+            @if (s.stats.length) {
+              <div class="c-stats">
+                @for (st of s.stats; track $index) {
+                  <div><strong [style.color]="p.accent">{{ st.value }}</strong><span>{{ st.label }}</span></div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      }
+    </main>
+  } @else if (p.kind === 'custom') {
+    <main class="custom">
+      <div class="empty">
+        <app-icon name="layers" [size]="34" [stroke]="1.5" />
+        <h2>ამ პროექტში ჯერ სექციები არ არის</h2>
+        <p>დაამატე ტექსტი, ფოტოები და რიცხვები ადმინ პანელიდან.</p>
+        <a class="btn primary" routerLink="/admin" [queryParams]="{ tab: 'projects', edit: p.id }"><app-icon name="plus" [size]="18" /> სექციის დამატება</a>
+      </div>
+    </main>
+  }
+
+  @if (next(); as n) {
+    <a class="next" [routerLink]="['/p', n.id]">
+      <app-photo [src]="n.hero || (n.kind === 'demography' ? store.photos()['hero'] : '')" [fallback]="n.accent" />
+      <div class="next-inner">
+        <span>შემდეგი პროექტი</span>
+        <strong>{{ n.title }}</strong>
+        <app-icon name="right" [size]="26" />
+      </div>
+    </a>
+  }
+
+  <app-footer />
+} @else {
+  <main class="notfound">
+    <app-icon name="search" [size]="36" [stroke]="1.5" />
+    <h1>პროექტი ვერ მოიძებნა</h1>
+    <p>შესაძლოა წაშლილია. აირჩიე სხვა პროექტი ზედა მენიუდან.</p>
+    <a class="btn primary" routerLink="/">მთავარ გვერდზე</a>
+  </main>
+}

@@ -1,0 +1,66 @@
+<header class="bar" [class.solid]="scrolled() || onAdmin() || drawerOpen()">
+  <div class="bar-inner">
+    <a class="brand" [routerLink]="['/p', store.projects()[0]?.id ?? 'school']" (click)="close()">
+      <app-logo [size]="36" />
+      <span class="brand-text">{{ store.state().brand }}</span>
+    </a>
+
+    <!-- პროექტების მენიუ (კომპიუტერი) -->
+    <div class="projects-menu">
+      <button class="pm-btn" (click)="menuOpen.set(!menuOpen())" [attr.aria-expanded]="menuOpen()" aria-haspopup="true">
+        <app-icon name="folder-open" [size]="18" />
+        <span class="pm-label">{{ current()?.title ?? 'პროექტები' }}</span>
+        <app-icon name="chevron-down" [size]="16" class="chev" [class.up]="menuOpen()" />
+      </button>
+      @if (menuOpen()) {
+        <div class="pm-panel" role="menu">
+          <div class="pm-head">პროექტები <span>{{ store.projects().length }}</span></div>
+          @for (p of store.projects(); track p.id) {
+            <a class="pm-item" role="menuitem" [routerLink]="['/p', p.id]" [class.on]="p.id === currentId()" (click)="close()">
+              <span class="pm-thumb" [style.background]="p.accent">
+                @if (thumb(p.hero, p.id)) { <img [src]="thumb(p.hero, p.id)" alt="" (error)="$any($event.target).remove()" /> }
+              </span>
+              <span class="pm-text"><small>{{ p.eyebrow }}</small><b>{{ p.title }}</b></span>
+              @if (p.id === currentId()) { <app-icon name="check" [size]="16" /> }
+            </a>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="actions">
+      <button class="theme-btn" (click)="store.toggleTheme()" [attr.aria-label]="store.dark() ? 'ღია ფონი' : 'მუქი ფონი'" [title]="store.dark() ? 'ღია ფონი' : 'მუქი ფონი'">
+        <app-icon [name]="store.dark() ? 'sun' : 'moon'" [size]="18" />
+      </button>
+      <a class="admin-btn" routerLink="/admin" [class.on]="onAdmin()">
+        <app-icon [name]="store.isAdmin() ? 'settings' : 'lock'" [size]="17" /><span>ადმინი</span>
+      </a>
+    </div>
+
+    <button class="theme-btn mob" (click)="store.toggleTheme()" [attr.aria-label]="store.dark() ? 'ღია ფონი' : 'მუქი ფონი'">
+      <app-icon [name]="store.dark() ? 'sun' : 'moon'" [size]="18" />
+    </button>
+    <button class="burger" (click)="drawerOpen.set(!drawerOpen())" [attr.aria-label]="drawerOpen() ? 'მენიუს დახურვა' : 'მენიუს გახსნა'">
+      <app-icon [name]="drawerOpen() ? 'x' : 'menu'" [size]="22" />
+    </button>
+  </div>
+</header>
+
+<!-- მობილურის მენიუ -->
+@if (drawerOpen()) {
+  <div class="drawer">
+    <p class="d-title">პროექტები</p>
+    @for (p of store.projects(); track p.id) {
+      <a class="d-item" [routerLink]="['/p', p.id]" [class.on]="p.id === currentId()" (click)="close()">
+        <span class="pm-thumb" [style.background]="p.accent">
+          @if (thumb(p.hero, p.id)) { <img [src]="thumb(p.hero, p.id)" alt="" (error)="$any($event.target).remove()" /> }
+        </span>
+        <span class="pm-text"><small>{{ p.eyebrow }}</small><b>{{ p.title }}</b></span>
+        <app-icon name="right" [size]="18" />
+      </a>
+    }
+    <div class="d-actions">
+      <a class="d-admin" routerLink="/admin" (click)="close()"><app-icon name="lock" [size]="18" /> ადმინ პანელი</a>
+    </div>
+  </div>
+}

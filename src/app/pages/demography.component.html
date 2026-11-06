@@ -1,0 +1,422 @@
+<!-- სექციების ნავიგაცია + ფილტრი -->
+<nav class="subnav" aria-label="სექციები">
+  <div class="subnav-inner">
+    <div class="filter" role="group" aria-label="ფილტრი საფეხურის მიხედვით">
+      <app-icon name="filter" [size]="15" />
+      @for (o of stageOptions; track o.id) {
+        <button [class.on]="stage() === o.id" (click)="setStage(o.id)">{{ o.label }}</button>
+      }
+    </div>
+    <div class="chips">
+      @for (n of visibleNav(); track n.id) {
+        <button [id]="'nav-' + n.id" [class.on]="active() === n.id" [style.--sc]="hue(n.id)" (click)="go(n.id)">
+          <b>{{ n.n }}</b>{{ n.t }}
+        </button>
+      }
+    </div>
+  </div>
+</nav>
+
+@if (stage() !== 'all') {
+  <div class="filter-note">
+    <app-icon name="filter" [size]="16" /> ნაჩვენებია მხოლოდ <b>{{ stageLabel() }}</b>: {{ st().total }} მოსწავლე
+    <button (click)="setStage('all')"><app-icon name="x" [size]="14" /> ფილტრის მოხსნა</button>
+  </div>
+}
+
+<main class="wrap">
+  <!-- 1. რაოდენობა -->
+  @if (show('s1')) {
+  <section class="section" id="s1" [style.--sc]="hue('s1')">
+    <div class="sec-head"><span class="num">01</span><div><h2>{{ t()['s1'].title }}</h2><p>{{ t()['s1'].desc }}</p></div></div>
+    <div class="bento">
+      <div class="card total">
+        <app-photo class="total-bg" [src]="ph()['desk']" fallback="#0B1426" />
+        <div class="total-inner">
+          <div class="bn-label"><app-icon name="users" [size]="18" /> სულ მოსწავლე{{ stageLabel() ? ' · ' + stageLabel() : '' }}</div>
+          <div class="bn-value" [countUp]="st().total"></div>
+          <div class="gender-meter" aria-hidden="true"><i class="b" [style.flex]="st().boys"></i><i class="g" [style.flex]="st().girls"></i></div>
+          <div class="split">
+            <div class="pill"><i class="dot boy"></i>ბიჭი <b>{{ st().boys }}</b><small>{{ pct(st().boys) | number:'1.1-1' }}%</small></div>
+            <div class="pill"><i class="dot girl"></i>გოგო <b>{{ st().girls }}</b><small>{{ pct(st().girls) | number:'1.1-1' }}%</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="mini" style="--k:var(--c2)"><app-icon name="layout" [size]="20" /><b>{{ st().density.classCount }}</b><span>კლასი (პარალელი)</span></div>
+      <div class="mini" style="--k:var(--c3)"><app-icon name="calc" [size]="20" /><b>{{ st().density.avg | number:'1.1-1' }}</b><span>საშუალოდ კლასში</span></div>
+      <div class="mini" style="--k:var(--c4)"><app-icon name="calendar" [size]="20" /><b>{{ st().ages[0]?.label }}–{{ st().ages[st().ages.length - 1]?.label }}</b><span>ასაკი (წელი)</span></div>
+      <div class="mini" style="--k:var(--c5)"><app-icon name="pin" [size]="20" /><b>{{ st().districts.length }}</b><span>უბანი</span></div>
+      <div class="card donut-card">
+        <h3><app-icon name="pie" [size]="18" /> ბიჭები და გოგოები</h3>
+        <app-chart [config]="cGender()" [height]="230" label="ბიჭები და გოგოები" />
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- 2. ასაკობრივი ჯგუფები -->
+  @if (show('s2')) {
+  <section class="section" id="s2" [style.--sc]="hue('s2')" reveal>
+    <div class="sec-head"><span class="num">02</span><div><h2>{{ t()['s2'].title }}</h2><p>{{ t()['s2'].desc }}</p></div></div>
+    <div class="group-cards">
+      @for (g of st().ageGroups; track g.label; let i = $index) {
+        <div class="card group" [style.--c]="hueAt(i)">
+          <span class="g-icon"><app-icon [name]="g.icon" [size]="22" /></span>
+          <div class="g-label">{{ g.label }}</div>
+          <div class="g-value">{{ g.value }}</div>
+          <div class="bar"><i [style.width.%]="pct(g.value)"></i></div>
+          <small>{{ pct(g.value) | number:'1.1-1' }}% ყველა მოსწავლიდან</small>
+        </div>
+      }
+    </div>
+    <div class="card mt"><app-chart [config]="cAgeGroups()" [height]="280" label="ასაკობრივი ჯგუფები" /></div>
+  </section>
+  }
+
+  <!-- 3. სქესობრივ-ასაკობრივი სტრუქტურა -->
+  @if (show('s3')) {
+  <section class="section" id="s3" [style.--sc]="hue('s3')" reveal>
+    <div class="sec-head"><span class="num">03</span><div><h2>{{ t()['s3'].title }}</h2><p>{{ t()['s3'].desc }}</p></div></div>
+    <div class="grid g-3-2">
+      <div class="card"><app-chart [config]="cPyramid()" [height]="440" label="ასაკობრივი პირამიდა" /></div>
+      <div class="card table-card">
+        <h3><app-icon name="grid" [size]="18" /> ცხრილი</h3>
+        <div class="scroll-x">
+          <table>
+            <thead><tr><th>ასაკი</th><th class="boy-t">ბიჭი</th><th class="girl-t">გოგო</th><th>სულ</th></tr></thead>
+            <tbody>
+              @for (p of st().pyramid; track p.age) {
+                <tr><td>{{ p.age }} წ.</td><td>{{ p.boys }}</td><td>{{ p.girls }}</td><td><b>{{ p.boys + p.girls }}</b></td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- 4. ასაკები -->
+  @if (show('s4')) {
+  <section class="section" id="s4" [style.--sc]="hue('s4')" reveal>
+    <div class="sec-head"><span class="num">04</span><div><h2>{{ t()['s4'].title }}</h2><p>{{ t()['s4'].desc }}</p></div></div>
+    <div class="grid g-1-3">
+      <div class="stack">
+        <div class="card hl max"><span><app-icon name="up" [size]="16" /> ყველაზე მეტი</span><strong>{{ st().ageMax.label }} წლის</strong><em>{{ st().ageMax.value }} მოსწავლე</em></div>
+        <div class="card hl min"><span><app-icon name="down" [size]="16" /> ყველაზე ნაკლები</span><strong>{{ st().ageMin.label }} წლის</strong><em>{{ st().ageMin.value }} მოსწავლე</em></div>
+      </div>
+      <div class="card"><app-chart [config]="cAges()" [height]="330" label="მოსწავლეები ასაკის მიხედვით" /></div>
+    </div>
+  </section>
+  }
+
+  <!-- 5. კლასები -->
+  @if (show('s5')) {
+  <section class="section" id="s5" [style.--sc]="hue('s5')" reveal>
+    <div class="sec-head"><span class="num">05</span><div><h2>{{ t()['s5'].title }}</h2><p>{{ t()['s5'].desc }}</p></div></div>
+    <div class="grid g-2">
+      <div class="card hl max">
+        <span><app-icon name="up" [size]="16" /> ყველაზე მეტი: {{ st().classMax[0]?.value }} მოსწავლე</span>
+        <div class="tags">@for (c of st().classMax; track c.label) {<b>{{ c.label }}</b>}</div>
+      </div>
+      <div class="card hl min">
+        <span><app-icon name="down" [size]="16" /> ყველაზე ნაკლები: {{ st().classMin[0]?.value }} მოსწავლე</span>
+        <div class="tags">@for (c of st().classMin; track c.label) {<b>{{ c.label }}</b>}</div>
+      </div>
+    </div>
+    <div class="card mt">
+      <h3><app-icon name="layout" [size]="18" /> კლასები (პარალელები)</h3>
+      <div class="scroll-x"><div class="wide-chart"><app-chart [config]="cClasses()" [height]="320" label="მოსწავლეები კლასების მიხედვით" /></div></div>
+    </div>
+    <div class="card mt">
+      <h3><app-icon name="layers" [size]="18" /> 1–12 კლასები ჯამში</h3>
+      <app-chart [config]="cGrades()" [height]="260" label="მოსწავლეები საფეხურების მიხედვით" />
+    </div>
+  </section>
+  }
+
+  <!-- 6. საფეხურები -->
+  @if (show('s6')) {
+  <section class="section" id="s6" [style.--sc]="hue('s6')" reveal>
+    <div class="sec-head"><span class="num">06</span><div><h2>{{ t()['s6'].title }}</h2><p>{{ t()['s6'].desc }}</p></div></div>
+    <div class="stage-cards">
+      @for (s of st().stages; track s.key) {
+        <article class="card stage" [style.--c]="s.color" [class.dim]="stage() !== 'all' && stage() !== s.key">
+          <div class="stage-photo">
+            <app-photo class="zoom" [src]="ph()[s.key]" [alt]="s.label" [fallback]="s.color" />
+            <span class="stage-icon"><app-icon [name]="s.icon" [size]="24" /></span>
+          </div>
+          <div class="stage-body">
+            <small>{{ s.range }}</small>
+            <h3>{{ s.label }}</h3>
+            <div class="stage-num"><span [countUp]="s.value"></span><em>მოსწავლე</em></div>
+            <div class="bar"><i [style.width.%]="pct(s.value)"></i></div>
+            <ul>
+              <li><app-icon name="layout" [size]="14" /> {{ s.classes }} კლასი</li>
+              <li><i class="dot boy"></i>{{ s.boys }} <i class="dot girl"></i>{{ s.girls }}</li>
+              <li><app-icon name="pie" [size]="14" /> {{ pct(s.value) | number:'1.0-1' }}%</li>
+            </ul>
+            <button class="stage-filter" (click)="setStage(stage() === s.key ? 'all' : s.key); go('s1')">
+              <app-icon name="filter" [size]="14" /> {{ stage() === s.key ? 'ფილტრის მოხსნა' : 'მხოლოდ ეს საფეხური' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="card mt"><app-chart [config]="cStages()" [height]="270" label="საფეხურები სქესის მიხედვით" /></div>
+  </section>
+  }
+
+  <!-- 7 & 8. სახელები და გვარები -->
+  @if (show('s7') || show('s8')) {
+  <div class="banner" reveal>
+    <app-photo [src]="ph()['library']" alt="ბიბლიოთეკა" />
+    <div class="banner-text"><span class="b-icon"><app-icon name="id" [size]="22" /></span><span>{{ st().total }} მოსწავლე. რომელი სახელი და გვარი გვხვდება ყველაზე ხშირად?</span></div>
+  </div>
+  <section class="section two-col" reveal>
+    @if (show('s7')) {
+    <div id="s7" [style.--sc]="hue('s7')">
+      <div class="sec-head"><span class="num">07</span><div><h2>{{ t()['s7'].title }}</h2><p>{{ t()['s7'].desc }}</p></div></div>
+      <div class="card rank">
+        @for (n of nameStats().names; track n.label; let i = $index) {
+          <div class="rank-row">
+            <span class="medal m{{ i }}">{{ i + 1 }}</span>
+            <div class="rank-main">
+              <div class="rank-top"><b>{{ n.label }}</b><span>{{ n.value }}</span></div>
+              <div class="bar"><i [style.width.%]="barW(n.value, nameStats().names)" [style.background]="hueAt(i)"></i></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+    }
+    @if (show('s8')) {
+    <div id="s8" [style.--sc]="hue('s8')">
+      <div class="sec-head"><span class="num">08</span><div><h2>{{ t()['s8'].title }}</h2><p>{{ t()['s8'].desc }}</p></div></div>
+      <div class="card rank">
+        @for (n of nameStats().surnames; track n.label; let i = $index) {
+          <div class="rank-row">
+            <span class="medal m{{ i }}">{{ i + 1 }}</span>
+            <div class="rank-main">
+              <div class="rank-top"><b>{{ n.label }}</b><span>{{ n.value }}</span></div>
+              <div class="bar"><i [style.width.%]="barW(n.value, nameStats().surnames)" [style.background]="hueAt(i + 2)"></i></div>
+            </div>
+          </div>
+        }
+        @if (nameStats().surnameTies > 0) {
+          <p class="note">კიდევ {{ nameStats().surnameTies }} გვარი გვხვდება {{ nameStats().surnames[4].value }}-ჯერ.</p>
+        }
+      </div>
+    </div>
+    }
+  </section>
+  }
+
+  <!-- 9. კუთხეები -->
+  @if (show('s9')) {
+  <section class="section" id="s9" [style.--sc]="hue('s9')" reveal>
+    <div class="sec-head"><span class="num">09</span><div><h2>{{ t()['s9'].title }}</h2><p>{{ t()['s9'].desc }}</p></div></div>
+    <div class="region-grid">
+      @for (r of regionPhotos; track r.key; let i = $index) {
+        <div class="region" [class.big]="i === 0" [style.--c]="hueAt(i)">
+          <app-photo class="zoom" [src]="ph()[r.key]" [alt]="r.label" [fallback]="hueAt(i)" />
+          <div class="region-label">
+            <div><b>{{ r.label }}</b><span>{{ pct(st().regionCount(r.label)) | number:'1.0-0' }}% მოსწავლეების</span></div>
+            <strong>{{ st().regionCount(r.label) }}</strong>
+          </div>
+        </div>
+      }
+    </div>
+    <div class="grid g-3-2 mt">
+      <div class="card"><h3><app-icon name="mountain" [size]="18" /> საქართველოს კუთხეები</h3><app-chart [config]="cRegions()" [height]="470" label="მოსწავლეები კუთხეების მიხედვით" /></div>
+      <div class="card">
+        <h3><app-icon name="globe" [size]="18" /> საზღვარგარეთიდან <span class="count">{{ st().abroadCount }}</span></h3>
+        <ul class="list flags">
+          @for (r of st().regionsAbroad; track r.label) {
+            <li><app-flag [name]="r.label" /><span>{{ r.label }}</span><i class="mini-bar"><i [style.width.%]="barW(r.value, st().regionsAbroad)"></i></i><b>{{ r.value }}</b></li>
+          }
+        </ul>
+        <p class="note">„უცნობი“ ნიშნავს, რომ Excel-ში კუთხე არ არის მითითებული. ფერეიდანი ირანშია.</p>
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- 10. უბნები -->
+  @if (show('s10')) {
+  <section class="section" id="s10" [style.--sc]="hue('s10')" reveal>
+    <div class="sec-head"><span class="num">10</span><div><h2>{{ t()['s10'].title }}</h2><p>{{ t()['s10'].desc }}</p></div></div>
+    <div class="stories">
+      @for (d of st().districts.slice(0, 2); track d.label; let i = $index) {
+        <article class="story" [class.flip]="i === 1">
+          <div class="story-img">
+            <app-photo class="zoom" [src]="i === 0 ? ph()['vake'] : ph()['saburtalo']" [alt]="d.label" [fallback]="hueAt(i + 3)" />
+            <span class="story-rank">{{ i + 1 }}</span>
+          </div>
+          <div class="story-body">
+            <small>{{ i === 0 ? 'ყველაზე დიდი უბანი' : 'მეორე ადგილზე' }}</small>
+            <h3>{{ d.label }}</h3>
+            <p>{{ i === 0 ? t()['vake'].desc : t()['saburtalo'].desc }}</p>
+            <div class="story-stats">
+              <div><b>{{ d.value }}</b><span>მოსწავლე</span></div>
+              <div><b>{{ pct(d.value) | number:'1.0-0' }}%</b><span>ყველა მოსწავლიდან</span></div>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="grid g-3-2 mt">
+      <div class="card"><h3><app-icon name="pin" [size]="18" /> ტოპ 12 უბანი</h3><app-chart [config]="cDistricts()" [height]="400" label="მოსწავლეები უბნების მიხედვით" /></div>
+      <div class="card">
+        <h3><app-icon name="map" [size]="18" /> ყველა უბანი <span class="count">{{ st().districts.length }}</span></h3>
+        <div class="cloud">
+          @for (d of st().districts; track d.label; let i = $index) { <span [style.--c]="hueAt(i)">{{ d.label }} <b>{{ d.value }}</b></span> }
+        </div>
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- 11 & 12. ენა და ეროვნება -->
+  @if (show('s11') || show('s12')) {
+  <div class="banner" reveal>
+    <app-photo [src]="ph()['world']" alt="მსოფლიოს რუკა დროშებით" />
+    <div class="banner-text"><span class="b-icon"><app-icon name="globe" [size]="22" /></span><span>{{ st().nats.length }} ეროვნება და {{ st().langs.length }} მშობლიური ენა ერთ სკოლაში</span></div>
+    <div class="banner-flags">@for (n of st().nats; track n.label) { <app-flag [name]="n.label" /> }</div>
+  </div>
+  <section class="section two-col" reveal>
+    @if (show('s11')) {
+    <div id="s11" [style.--sc]="hue('s11')">
+      <div class="sec-head"><span class="num">11</span><div><h2>{{ t()['s11'].title }}</h2><p>{{ t()['s11'].desc }}</p></div></div>
+      <div class="card">
+        <div class="donut-center"><app-chart [config]="cLangs()" [height]="240" label="მშობლიური ენა" /><div class="dc-label"><b>{{ pct(st().langs[0]?.value ?? 0) | number:'1.0-0' }}%</b><span>{{ st().langs[0]?.label }}</span></div></div>
+        <ul class="list flags legend">
+          @for (l of st().langs; track l.label; let i = $index) {
+            <li><i class="sw" [style.background]="paletteColor(i)"></i><app-flag [name]="l.label" /><span>{{ l.label }}</span><b>{{ l.value }}</b></li>
+          }
+        </ul>
+      </div>
+    </div>
+    }
+    @if (show('s12')) {
+    <div id="s12" [style.--sc]="hue('s12')">
+      <div class="sec-head"><span class="num">12</span><div><h2>{{ t()['s12'].title }}</h2><p>{{ t()['s12'].desc }}</p></div></div>
+      <div class="card">
+        <div class="donut-center"><app-chart [config]="cNats()" [height]="240" label="ეროვნება" /><div class="dc-label"><b>{{ pct(st().nats[0]?.value ?? 0) | number:'1.0-0' }}%</b><span>{{ st().nats[0]?.label }}</span></div></div>
+        <ul class="list flags legend">
+          @for (l of st().nats; track l.label; let i = $index) {
+            <li><i class="sw" [style.background]="paletteColor(i)"></i><app-flag [name]="l.label" /><span>{{ l.label }}</span><b>{{ l.value }}</b></li>
+          }
+        </ul>
+      </div>
+    </div>
+    }
+  </section>
+  }
+
+  <!-- 13. სქესი კლასებში -->
+  @if (show('s13')) {
+  <section class="section" id="s13" [style.--sc]="hue('s13')" reveal>
+    <div class="sec-head"><span class="num">13</span><div><h2>{{ t()['s13'].title }}</h2><p>{{ t()['s13'].desc }}</p></div></div>
+    <div class="card">
+      <div class="scroll-x"><div class="wide-chart"><app-chart [config]="cGenderClass()" [height]="340" label="სქესი კლასებში" /></div></div>
+    </div>
+    <div class="gender-grid mt">
+      @for (g of st().genderByClass; track g.cls) {
+        <button class="gcell" (click)="picked.set(g.cls); go('s15')" [title]="g.cls + ' კლასის ბარათი'">
+          <b>{{ g.cls }}</b>
+          <div class="gbar"><i class="b" [style.flex]="g.boys"></i><i class="g" [style.flex]="g.girls"></i></div>
+          <small><i class="dot boy"></i>{{ g.boys }} <i class="dot girl"></i>{{ g.girls }}</small>
+        </button>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- 14. სიმჭიდროვე -->
+  @if (show('s14')) {
+  <section class="section" id="s14" [style.--sc]="hue('s14')" reveal>
+    <div class="sec-head"><span class="num">14</span><div><h2>{{ t()['s14'].title }}</h2><p>{{ t()['s14'].desc }}</p></div></div>
+    <div class="grid g-1-3">
+      <div class="stack">
+        <div class="density-photo"><app-photo [src]="ph()['lecture']" alt="საკლასო ოთახი" /></div>
+        <div class="kpi-grid">
+          <div class="kpi" style="--k:var(--c5)"><span>საშუალო</span><strong>{{ st().density.avg | number:'1.1-1' }}</strong><em>მოსწ. / კლასი</em></div>
+          <div class="kpi" style="--k:var(--c3)"><span>მაქსიმუმი</span><strong>{{ st().density.max }}</strong><em>მოსწავლე</em></div>
+          <div class="kpi" style="--k:var(--c1)"><span>მინიმუმი</span><strong>{{ st().density.min }}</strong><em>მოსწავლე</em></div>
+          <div class="kpi" style="--k:var(--c4)"><span>ფორმულა</span><strong class="sm">{{ st().total }} ÷ {{ st().density.classCount }}</strong><em>მოსწ. ÷ კლასი</em></div>
+        </div>
+      </div>
+      <div class="card heat-card">
+        <h3><app-icon name="grid" [size]="18" /> კლასი × პარალელი</h3>
+        <div class="heat" [style.grid-template-columns]="'64px repeat(' + st().density.secs.length + ', minmax(0,1fr))'">
+          <div class="h-head"></div>
+          @for (sec of st().density.secs; track sec) { <div class="h-head">{{ sec }}</div> }
+          @for (r of st().density.rows; track r.grade) {
+            <div class="h-row">{{ r.grade }} კლ.</div>
+            @for (c of r.cells; track c.sec) {
+              @if (c.exists) {
+                <button class="h-cell" [style.background]="heat(c.value)" [style.color]="heatInk(c.value)" (click)="picked.set(r.grade + c.sec); go('s15')"
+                  [attr.aria-label]="r.grade + c.sec + ': ' + c.value + ' მოსწავლე'">{{ c.value }}</button>
+              } @else { <div class="h-cell empty">—</div> }
+            }
+          }
+        </div>
+        <div class="heat-legend"><span>{{ st().density.min }}</span><i></i><span>{{ st().density.max }}</span></div>
+        <p class="note">დააჭირე უჯრას და ნახე ამ კლასის ბარათი.</p>
+      </div>
+    </div>
+  </section>
+  }
+
+  <!-- 15. კლასის ბარათი -->
+  @if (show('s15')) {
+  <section class="section" id="s15" [style.--sc]="hue('s15')" reveal>
+    <div class="sec-head"><span class="num">15</span><div><h2>{{ t()['s15'].title }}</h2><p>{{ t()['s15'].desc }}</p></div></div>
+    @if (classCard(); as c) {
+      <div class="class-picker" role="group" aria-label="კლასის არჩევა">
+        @for (k of c.classes; track k.label) {
+          <button [class.on]="k.label === c.cls" (click)="picked.set(k.label)">{{ k.label }}</button>
+        }
+      </div>
+      <div class="class-card">
+        <div class="cc-head">
+          <div class="cc-badge">{{ c.cls }}</div>
+          <div class="cc-title">
+            <small>კლასი</small>
+            <h3>{{ c.total }} მოსწავლე</h3>
+            <span>ზომით {{ c.rank }}-ე ადგილზე {{ c.classes.length }} კლასიდან · სკოლის საშუალო {{ c.schoolAvg | number:'1.1-1' }}</span>
+          </div>
+        </div>
+        <div class="cc-grid">
+          <div class="cc-box">
+            <h4><app-icon name="users" [size]="16" /> სქესი</h4>
+            <div class="gender-meter big"><i class="b" [style.flex]="c.boys || 0.001"></i><i class="g" [style.flex]="c.girls || 0.001"></i></div>
+            <div class="cc-pair"><span><i class="dot boy"></i>ბიჭი <b>{{ c.boys }}</b></span><span><i class="dot girl"></i>გოგო <b>{{ c.girls }}</b></span></div>
+          </div>
+          <div class="cc-box">
+            <h4><app-icon name="calendar" [size]="16" /> საშუალო ასაკი</h4>
+            <div class="cc-big">{{ c.avgAge | number:'1.1-1' }} <small>წელი</small></div>
+          </div>
+          <div class="cc-box">
+            <h4><app-icon name="pin" [size]="16" /> უბნები</h4>
+            <ul class="cc-list">@for (d of c.districts; track d.label) { <li><span>{{ d.label }}</span><b>{{ d.value }}</b></li> }</ul>
+          </div>
+          <div class="cc-box">
+            <h4><app-icon name="mountain" [size]="16" /> კუთხეები</h4>
+            <ul class="cc-list">@for (d of c.regions; track d.label) { <li><app-flag [name]="d.label" /><span>{{ d.label }}</span><b>{{ d.value }}</b></li> }</ul>
+          </div>
+          <div class="cc-box">
+            <h4><app-icon name="flag" [size]="16" /> ეროვნება</h4>
+            <ul class="cc-list">@for (d of c.nats; track d.label) { <li><app-flag [name]="d.label" /><span>{{ d.label }}</span><b>{{ d.value }}</b></li> }</ul>
+          </div>
+          <div class="cc-box">
+            <h4><app-icon name="languages" [size]="16" /> ენა</h4>
+            <ul class="cc-list">@for (d of c.langs; track d.label) { <li><app-flag [name]="d.label" /><span>{{ d.label }}</span><b>{{ d.value }}</b></li> }</ul>
+          </div>
+        </div>
+      </div>
+    }
+  </section>
+  }
+</main>

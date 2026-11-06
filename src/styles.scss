@@ -1,0 +1,83 @@
+// გლობალური სტილები და ფერები
+// განლაგება: ფოტოიანი ზედა ნაწილი, შემდეგ დანომრილი სექციები თეთრ ბარათებზე
+
+:root {
+  --brand: #E8384F;      // მთავარი ფერი (იცვლება ადმინ პანელიდან)
+  --bg: #F5F6FB;
+  --bg-2: #ECEEF7;
+  --card: #FFFFFF;
+  --ink: #0B1426;
+  --ink-2: #1C2740;
+  --muted: #5B6680;
+  --line: #E4E7F0;
+  --soft: #EFF1F8;
+  --grid: #EBEEF5;
+  --boy: #3B6EF5;
+  --girl: #F0508A;
+  --max: #12B886;
+  --min: #F04452;
+  // სექციების ფერები
+  --c1: #E8384F; --c2: #F59F00; --c3: #12B886; --c4: #228BE6; --c5: #7950F2; --c6: #E64980;
+  --radius: 18px;
+  --shadow: 0 1px 2px rgba(11, 20, 38, .04), 0 12px 32px -16px rgba(11, 20, 38, .16);
+  --f-display: 'Noto Serif Georgian', Georgia, serif;
+  --f-body: 'Noto Sans Georgian', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #0A0F1C;
+  --bg-2: #0E1526;
+  --card: #121A2C;
+  --ink: #E8ECF6;
+  --ink-2: #C9D1E3;
+  --muted: #94A0BA;
+  --line: #222D44;
+  --soft: #1A2338;
+  --grid: #1E2840;
+  --boy: #5B8CFF;
+  --girl: #FF6FA5;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 14px 34px -18px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.55;
+  background: var(--bg);
+  color: var(--ink);
+  transition: background .3s, color .3s;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; font-family: var(--f-display); }
+button { font: inherit; cursor: pointer; }
+input, textarea, select { font: inherit; }
+img { max-width: 100%; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--brand) 25%, transparent); }
+
+// ზოგადი ღილაკები (ადმინში და გვერდებზე)
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink); font-weight: 600; font-size: .9rem;
+  text-decoration: none; transition: background .15s, border-color .15s, transform .15s; white-space: nowrap;
+  &:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+  &.primary { background: var(--brand); color: #fff; border-color: var(--brand); &:hover { filter: brightness(1.07); } }
+  &.dark { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  &.danger { color: var(--min); &:hover { border-color: var(--min); background: color-mix(in srgb, var(--min) 8%, transparent); } }
+  &.sm { padding: 6px 10px; font-size: .82rem; border-radius: 8px; }
+  &.icon { padding: 8px; }
+  &:disabled { opacity: .45; cursor: not-allowed; }
+}
+
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s cubic-bezier(.2, .7, .2, 1); }
+.reveal.visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
